@@ -27,9 +27,7 @@ pub fn pattern(p: &mut Parser, parameters: bool, assignment: bool) -> Option<Com
                 },
             )
         }
-        kind if token_set![T![ident], T![await]].contains(kind)
-            || (kind == T![yield] && p.state.strict.is_none()) =>
-        {
+        T![ident] | T![yield] | T![await] => {
             let m = p.start();
             if p.state.should_record_names {
                 let string = p.cur_src().to_string();
@@ -111,7 +109,9 @@ pub fn binding_identifier(p: &mut Parser) -> Option<CompletedMarker> {
         p.error(err);
     }
 
-    if p.state.strict.is_some() && (p.cur_src() == "eval" || p.cur_src() == "arguments") {
+    if p.state.strict.is_some()
+        && (p.cur_src() == "eval" || p.cur_src() == "arguments" || p.cur_src() == "yield")
+    {
         let err = p
             .err_builder(&format!(
                 "Illegal use of `{}` as an identifier in strict mode",
