@@ -72,11 +72,11 @@ const UNICODE_SPACES: [char; 16] = [
 ];
 
 fn is_id_start(c: char) -> bool {
-    ID_Start(c)
+    c == '_' || c == '$' || ID_Start(c)
 }
 
 fn is_id_continue(c: char) -> bool {
-    ID_Continue(c)
+    c == '$' || c == '\u{200d}' || c == '\u{200c}' || ID_Continue(c)
 }
 
 /// An extremely fast, lookup table based, lossless ECMAScript lexer
@@ -387,11 +387,6 @@ impl<'src> Lexer<'src> {
     fn consume_and_get_ident(&mut self, buf: &mut [u8]) -> usize {
         let mut idx = 0;
 
-        if let Some((c, buf)) = self.cur_ident_part().zip(buf.get_mut(idx..idx + 4)) {
-            let res = c.encode_utf8(buf);
-            idx += res.len();
-        }
-
         unwind_loop! {
             if self.next_bounded().is_some() {
                 if let Some(c) = self.cur_ident_part() {
@@ -473,7 +468,6 @@ impl<'src> Lexer<'src> {
 
                 if let Ok(c) = res {
                     if is_id_continue(c) {
-                        self.cur += c.len_utf8() - 1;
                         Some(c)
                     } else {
                         self.cur -= 1;
@@ -525,18 +519,21 @@ impl<'src> Lexer<'src> {
 
     /// Returns the identifier token at the current position, or the keyword token if
     /// the identifier is a keyword.
+    ///
+    /// `first` is a pair of a character that was already consumed,
+    /// but is still part of the identifier, and the characters position.
     #[inline]
-    fn resolve_identifier(&mut self) -> LexerReturn {
+    fn resolve_identifier(&mut self, first: (char, usize)) -> LexerReturn {
         use SyntaxKind::*;
-
-        let start = self.cur;
 
         // Note to keep the buffer large enough to fit every possible keyword that
         // the lexer can return
         let mut buf = [0u8; 16];
-        let count = self.consume_and_get_ident(&mut buf);
+        let (len, start) = (first.0.encode_utf8(&mut buf).len(), first.1);
 
-        let kind = match &buf[..count] {
+        let count = self.consume_and_get_ident(&mut buf[len..]);
+
+        let kind = match &buf[..count + len] {
             b"await" => Some(AWAIT_KW),
             b"break" => Some(BREAK_KW),
             b"case" => Some(CASE_KW),
@@ -1284,9 +1281,7 @@ impl<'src> Lexer<'src> {
                     match res {
                         Ok(chr) => {
                             if is_id_start(chr) {
-                                self.consume_ident();
-
-                                tok!(IDENT, self.cur - start)
+                                self.resolve_identifier((chr, start))
                             } else {
                                 let err = Diagnostic::error(self.file_id, "", "unexpected unicode escape")
                                     .primary(start..self.cur, "this escape is unexpected, as it does not designate the start of an identifier");
@@ -1325,7 +1320,7 @@ impl<'src> Lexer<'src> {
                     tok!(STRING, self.cur - start)
                 }
             }
-            IDT => self.resolve_identifier(),
+            IDT => self.resolve_identifier((byte as char, start)),
             DIG => {
                 let diag = self.read_number();
                 let (token, err) = self.verify_number_end(start);
@@ -1345,20 +1340,21 @@ impl<'src> Lexer<'src> {
             PIP => self.resolve_pipe(),
             TLD => self.eat(tok![~]),
             UNI => {
-                if UNICODE_WHITESPACE_STARTS.contains(&byte) {
-                    let chr = self.get_unicode_char();
+                let chr = self.get_unicode_char();
+                if UNICODE_WHITESPACE_STARTS.contains(&byte)
+                    && (is_linebreak(chr) || UNICODE_SPACES.contains(&chr))
+                {
                     if is_linebreak(chr) {
                         self.state.had_linebreak = true;
                     }
-                    self.cur += self.get_unicode_char().len_utf8() - 1;
+
+                    self.cur += chr.len_utf8() - 1;
                     self.consume_whitespace();
                     tok!(WHITESPACE, self.cur - start)
                 } else {
-                    let chr = self.get_unicode_char();
                     self.cur += chr.len_utf8() - 1;
                     if is_id_start(chr) {
-                        self.consume_ident();
-                        tok!(IDENT, self.cur - start)
+                        self.resolve_identifier((chr, start))
                     } else {
                         let err = Diagnostic::error(
                             self.file_id,

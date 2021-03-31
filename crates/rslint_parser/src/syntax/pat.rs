@@ -27,7 +27,9 @@ pub fn pattern(p: &mut Parser, parameters: bool, assignment: bool) -> Option<Com
                 },
             )
         }
-        T![ident] | T![yield] | T![await] => {
+        kind if token_set![T![ident], T![await]].contains(kind)
+            || (kind == T![yield] && p.state.strict.is_none()) =>
+        {
             let m = p.start();
             if p.state.should_record_names {
                 let string = p.cur_src().to_string();
