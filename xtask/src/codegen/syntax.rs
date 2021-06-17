@@ -240,14 +240,21 @@ fn generate_syntax_kinds(grammar: KindsSrc<'_>) -> Result<String> {
         .map(|(_token, name)| format_ident!("{}", name))
         .collect::<Vec<_>>();
 
-    let full_keywords_values = &grammar.keywords;
+    let full_keywords_values = &[grammar.reserved_keywords, grammar.contextual_keywords].concat();
     let full_keywords = full_keywords_values
         .iter()
         .map(|kw| format_ident!("{}_KW", to_upper_snake_case(&kw)));
 
-    let all_keywords_values = grammar.keywords.to_vec();
-    let all_keywords_idents = all_keywords_values.iter().map(|kw| format_ident!("{}", kw));
-    let all_keywords = all_keywords_values
+    let reserved_keywords_values = grammar.reserved_keywords.to_vec();
+    let reserved_keywords_idents = reserved_keywords_values.iter().map(|kw| format_ident!("{}", kw));
+    let reserved_keywords = reserved_keywords_values
+        .iter()
+        .map(|name| format_ident!("{}_KW", to_upper_snake_case(&name)))
+        .collect::<Vec<_>>();
+
+    let contextual_keywords_values = grammar.contextual_keywords.to_vec();
+    let contextual_keywords_idents = contextual_keywords_values.iter().map(|kw| format_ident!("{}", kw));
+    let contextual_keywords = contextual_keywords_values
         .iter()
         .map(|name| format_ident!("{}_KW", to_upper_snake_case(&name)))
         .collect::<Vec<_>>();
@@ -284,7 +291,8 @@ fn generate_syntax_kinds(grammar: KindsSrc<'_>) -> Result<String> {
             #[doc(hidden)]
             EOF,
             #(#punctuation,)*
-            #(#all_keywords,)*
+            #(#reserved_keywords,)*
+            #(#contextual_keywords,)*
             #(#literals,)*
             #(#tokens,)*
             #(#nodes,)*
@@ -297,8 +305,19 @@ fn generate_syntax_kinds(grammar: KindsSrc<'_>) -> Result<String> {
 
         impl SyntaxKind {
             pub fn is_keyword(self) -> bool {
+                self.is_reserved_keyword() || self.is_contextual_keyword()
+            }
+
+            pub fn is_reserved_keyword(self) -> bool {
                 match self {
-                    #(#all_keywords)|* => true,
+                    #(#reserved_keywords)|* => true,
+                    _ => false,
+                }
+            }
+
+            pub fn is_contextual_keyword(self) -> bool {
+                match self {
+                    #(#contextual_keywords)|* => true,
                     _ => false,
                 }
             }
@@ -358,7 +377,8 @@ fn generate_syntax_kinds(grammar: KindsSrc<'_>) -> Result<String> {
         #[macro_export]
         macro_rules! T {
             #([#punctuation_values] => { $crate::SyntaxKind::#punctuation };)*
-            #([#all_keywords_idents] => { $crate::SyntaxKind::#all_keywords };)*
+            #([#reserved_keywords_idents] => { $crate::SyntaxKind::#reserved_keywords };)*
+            #([#contextual_keywords_idents] => { $crate::SyntaxKind::#contextual_keywords };)*
             [ident] => { $crate::SyntaxKind::IDENT };
             [shebang] => { $crate::SyntaxKind::SHEBANG };
             [#] => { $crate::SyntaxKind::HASH };

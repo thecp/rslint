@@ -595,10 +595,10 @@ pub fn bracket_expr(p: &mut Parser, lhs: CompletedMarker, optional_chain: bool) 
 pub fn identifier_name(p: &mut Parser) -> Option<CompletedMarker> {
     let m = p.start();
     match p.cur() {
-        t if t.is_keyword() || t == T![ident] => p.bump_remap(T![ident]),
-        _ => {
+        t if t.is_reserved_keyword() || t == T![ident] => p.bump_remap(T![ident]),
+        t => {
             let err = p
-                .err_builder("Expected an identifier or keyword")
+                .err_builder(&format!("Expected an identifier or keyword: {:?}", t))
                 .primary(p.cur_tok().range, "Expected an identifier or keyword here");
             p.error(err);
             m.abandon(p);

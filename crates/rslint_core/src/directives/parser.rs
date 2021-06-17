@@ -279,7 +279,7 @@ impl<'store, 'file> DirectiveParser<'store, 'file> {
             }
             Instruction::RuleName => {
                 fn is_rule_name(kind: SyntaxKind) -> bool {
-                    kind == T![-] || kind == T![ident] || kind.is_keyword()
+                    kind == T![-] || kind == T![ident] || kind.is_reserved_keyword()
                 }
 
                 let first = lexer

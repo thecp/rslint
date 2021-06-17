@@ -117,7 +117,8 @@ fn assert_errors_are_present(errors: &[ParserError], path: &Path) {
 fn assert_errors_are_absent(errors: &[ParserError], path: &Path) {
     assert!(
         errors.is_empty(),
-        "There should be no errors in the file {:?}",
+        "There should be no errors in the file {:?}, {:?}",
         path.display(),
+        errors
     );
 }

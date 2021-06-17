@@ -311,7 +311,8 @@ pub enum SyntaxKind {
 }
 use self::SyntaxKind::*;
 impl SyntaxKind {
-    pub fn is_keyword(self) -> bool {
+    pub fn is_keyword(self) -> bool { self.is_reserved_keyword() || self.is_contextual_keyword() }
+    pub fn is_reserved_keyword(self) -> bool {
         match self {
             AWAIT_KW | BREAK_KW | CASE_KW | CATCH_KW | CLASS_KW | CONST_KW | CONTINUE_KW
             | DEBUGGER_KW | DEFAULT_KW | DELETE_KW | DO_KW | ELSE_KW | ENUM_KW | EXPORT_KW
@@ -319,9 +320,15 @@ impl SyntaxKind {
             | INSTANCEOF_KW | INTERFACE_KW | IMPORT_KW | IMPLEMENTS_KW | NEW_KW | NULL_KW
             | PACKAGE_KW | PRIVATE_KW | PROTECTED_KW | PUBLIC_KW | RETURN_KW | SUPER_KW
             | SWITCH_KW | THIS_KW | THROW_KW | TRY_KW | TRUE_KW | TYPEOF_KW | VAR_KW | VOID_KW
-            | WHILE_KW | WITH_KW | YIELD_KW | READONLY_KW | KEYOF_KW | UNIQUE_KW | DECLARE_KW
-            | ABSTRACT_KW | STATIC_KW | ASYNC_KW | TYPE_KW | FROM_KW | AS_KW | REQUIRE_KW
-            | NAMESPACE_KW | ASSERT_KW | MODULE_KW | GLOBAL_KW | INFER_KW | GET_KW | SET_KW => true,
+            | WHILE_KW | WITH_KW | YIELD_KW => true,
+            _ => false,
+        }
+    }
+    pub fn is_contextual_keyword(self) -> bool {
+        match self {
+            READONLY_KW | KEYOF_KW | UNIQUE_KW | DECLARE_KW | ABSTRACT_KW | STATIC_KW
+            | ASYNC_KW | TYPE_KW | FROM_KW | AS_KW | REQUIRE_KW | NAMESPACE_KW | ASSERT_KW
+            | MODULE_KW | GLOBAL_KW | INFER_KW | GET_KW | SET_KW => true,
             _ => false,
         }
     }

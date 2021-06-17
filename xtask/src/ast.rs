@@ -3,7 +3,8 @@
 
 pub(crate) struct KindsSrc<'a> {
     pub(crate) punct: &'a [(&'a str, &'a str)],
-    pub(crate) keywords: &'a [&'a str],
+    pub(crate) reserved_keywords: &'a [&'a str],
+    pub(crate) contextual_keywords: &'a [&'a str],
     pub(crate) literals: &'a [&'a str],
     pub(crate) tokens: &'a [&'a str],
     pub(crate) nodes: &'a [&'a str],
@@ -72,7 +73,7 @@ pub(crate) const KINDS_SRC: KindsSrc = KindsSrc {
         ("??=", "QUESTION2EQ"),
         ("@", "AT"),
     ],
-    keywords: &[
+    reserved_keywords: &[
         "await",
         "break",
         "case",
@@ -117,7 +118,8 @@ pub(crate) const KINDS_SRC: KindsSrc = KindsSrc {
         "while",
         "with",
         "yield",
-        // contextual keywords
+    ],
+    contextual_keywords: &[
         "readonly",
         "keyof",
         "unique",
